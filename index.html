@@ -1,0 +1,76 @@
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.1/jquery.min.js"></script>
+<script type="text/javascript">
+var sessionId = null;
+var env = {};
+function server(action,sendData) {
+	sendData.action = action;
+	if(sessionId!=null) sendData.sessionId = sessionId;
+	console.log(sendData);
+	$.post('/', sendData, function(recvData){
+		recvData = JSON.parse(recvData);
+		console.log(recvData);
+		processAction(recvData.action, recvData);
+	});
+}
+function processAction(action,data) {
+	switch(action) {
+		case 'auth':
+			sessionId = data.sessionId;
+			$('#show').html(data.sessionId);
+		break;
+		case 'getPlayerPositions':
+			env.players = data.players;
+		case 'move':
+			$('#show').html(data.x + ", " + data.y);
+		break;
+	}
+}
+$(function(){
+	$(document).keypress(function(e) {
+		if(e.which == 'w'.charCodeAt(0))
+			server('move',{direction:'up'});
+		if(e.which == 's'.charCodeAt(0))
+			server('move',{direction:'down'});
+		if(e.which == 'a'.charCodeAt(0))
+			server('move',{direction:'left'});
+		if(e.which == 'd'.charCodeAt(0))
+			server('move',{direction:'right'});
+	});
+	resizeCanvas();
+	server('auth',{});
+});
+function resizeCanvas() {
+	var canvas = document.getElementById('draw');
+	env.screenWidth=window.innerWidth-15;
+	env.screenHeight=window.innerHeight-15;
+	canvas.width=env.screenWidth;
+	canvas.height=env.screenHeight;
+}
+function GraphicsContext()
+{
+	if(window.graphicsContext==null)
+		window.graphicsContext = c=document.getElementById("draw").getContext("2d");
+	return window.graphicsContext;
+}
+setInterval(function(){
+	server('getPlayerPositions',{});
+	if(env.screenWidth!=window.innerWidth||env.screenHeight!=window.innerHeight);
+		resizeCanvas();
+	GraphicsContext().fillStyle = '#222222';
+	GraphicsContext().fillRect(0,0,env.screenWidth,env.screenHeight);
+	GraphicsContext().fillStyle = '#ffffff';
+	for(player in env.players) {
+		GraphicsContext().fillRect(env.players[player].x+(env.screenWidth/2)-(env.players[player].size/2),
+											env.screenHeight-(env.players[player].y+(env.screenHeight/2)+(env.players[player].size/2)),
+											env.players[player].size,env.players[player].size);
+	}
+},1000/30);
+</script>
+</head>
+<body>
+<canvas id="draw" width="400px" height="300px">
+</canvas>
+</body>
+</html>
